@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17452d">
+<title>CleanTrack</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f2f7f3;color:#17241b;font-family:Arial,sans-serif}
+header{background:#17452d;color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+header b{font-size:20px}header button{background:transparent;color:#fff;border:1px solid #ffffff55;padding:8px 10px;border-radius:9px}
+main{max-width:760px;margin:auto}.hero{background:#dcefe2;padding:30px 18px}.hero h1{font-size:29px;margin:8px 0}.hero p{line-height:1.5}.tag{font-size:11px;font-weight:bold;letter-spacing:1px}
+.card{background:#fff;margin:15px;padding:19px;border-radius:16px;box-shadow:0 2px 9px #00000010}.card h2{margin-top:0}
+input,select,textarea{width:100%;padding:12px;margin:5px 0 13px;border:1px solid #ccd7cf;border-radius:10px;font:inherit;background:#fff}
+textarea{min-height:90px;resize:vertical}button.primary{background:#176b36;color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:bold;width:100%}
+.row{display:flex;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid #e4e9e5;align-items:flex-start}.row:last-child{border-bottom:0}
+.row span{display:block;color:#68756d;font-size:13px;margin-top:5px}.badge{background:#e4f5e8;color:#176536;padding:7px 10px;border-radius:20px;font-size:12px;white-space:nowrap}
+.status{padding:6px 9px;border-radius:15px;background:#e4f5e8;color:#176536;font-size:12px}.processing{background:#fff0c7;color:#765400}.collected{background:#dcecff;color:#18518a}
+nav{display:flex;gap:8px;padding:12px 15px;background:#fff;position:sticky;top:57px;z-index:4;overflow:auto}nav button{white-space:nowrap;border:1px solid #ccd7cf;background:#fff;border-radius:20px;padding:9px 13px}nav button.active{background:#17452d;color:#fff}
+.hidden{display:none}.muted{color:#6c786f;font-size:14px}.small{font-size:12px;color:#68756d}footer{text-align:center;padding:25px;color:#718078;font-size:12px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#173d2a;color:#fff;padding:12px 16px;border-radius:12px;display:none;z-index:20;max-width:90%}
+@media(max-width:600px){.hero h1{font-size:25px}.card{margin:12px}.row{font-size:14px}}
+</style>
+</head>
+<body>
+<header><b>🗑️ CleanTrack</b><button onclick="toggleStaff()">Staff</button></header>
+<nav id="nav"><button class="active" onclick="showPage('home',this)">Home</button><button onclick="showPage('report',this)">Report</button><button onclick="showPage('status',this)">My Reports</button><button onclick="showPage('staff',this)">Dashboard</button></nav>
+
+<main>
+<section id="home">
+<div class="hero"><div class="tag">COMMUNITY GARBAGE MONITORING</div><h1>Know when to put out your garbage.</h1><p>Check your collection schedule and avoid leaving garbage outside after collection.</p></div>
+<div class="card"><h2>📅 Collection Schedule</h2><input id="areaSearch" placeholder="Search your area..."><div id="areas"></div></div>
+<div class="card"><h2>⚠️ Important Notice</h2><p id="notice" class="muted">No cancellation notices.</p></div>
+</section>
+
+<section id="report" class="hidden">
+<div class="card"><h2>📝 Report Missed Collection</h2><p class="muted">Use this when your scheduled garbage was not collected.</p>
+<label>Area</label><select id="rArea"></select><label>Priority</label><select id="rPriority"><option>Medium</option><option>High</option><option>Low</option></select>
+<label>Description</label><textarea id="rDesc" placeholder="Example: Garbage was not collected today."></textarea>
+<button class="primary" onclick="submitReport()">Submit Report</button></div></section>
+
+<section id="status" class="hidden">
+<div class="card"><h2>🔎 My Reports</h2><input id="reportSearch" placeholder="Search report ID or area..."><div id="reports"></div></div></section>
+
+<section id="staff" class="hidden">
+<div class="card"><h2>👨‍💼 Staff Dashboard</h2><p class="muted">For project demonstration. Reports are stored on this device.</p><div id="staffReports"></div></div>
+<div class="card"><h2>📢 Collection Notice</h2><select id="noticeSelect"><option>No cancellation notices.</option><option>Today's collection is cancelled.</option><option>Collection delayed due to weather.</option><option>Collection schedule changed. Please check your area.</option></select><button class="primary" onclick="saveNotice()">Publish Notice</button></div>
+</section>
+</main>
+<footer>CleanTrack • Student Project Prototype</footer><div id="toast" class="toast"></div>
+
+<script>
+const defaultAreas=[
+{name:"Area A",day:"Monday",time:"7:00 AM",status:"Scheduled"},
+{name:"Area B",day:"Monday",time:"8:00 AM",status:"Scheduled"},
+{name:"Area C",day:"Tuesday",time:"7:00 AM",status:"Scheduled"},
+{name:"Area D",day:"Wednesday",time:"8:00 AM",status:"Scheduled"},
+{name:"Area E",day:"Thursday",time:"7:00 AM",status:"Scheduled"}];
+let areas=JSON.parse(localStorage.getItem("ct_areas")||"null")||defaultAreas;
+let reports=JSON.parse(localStorage.getItem("ct_reports")||"[]");
+let notice=localStorage.getItem("ct_notice")||"No cancellation notices.";
+
+function save(){localStorage.setItem("ct_reports",JSON.stringify(reports));localStorage.setItem("ct_areas",JSON.stringify(areas));localStorage.setItem("ct_notice",notice)}
+function showPage(id,btn){document.querySelectorAll("main>section").forEach(x=>x.classList.add("hidden"));document.getElementById(id).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));if(btn)btn.classList.add("active");render()}
+function toggleStaff(){showPage("staff",document.querySelectorAll("nav button")[3])}
+function render(){
+ const q=(document.getElementById("areaSearch")?.value||"").toLowerCase();
+ document.getElementById("areas").innerHTML=areas.filter(a=>a.name.toLowerCase().includes(q)).map(a=>`<div class="row"><div><b>${a.name}</b><span>${a.day} • ${a.time}</span></div><span class="badge">${a.status}</span></div>`).join("");
+ document.getElementById("notice").textContent=notice;
+ document.getElementById("rArea").innerHTML=areas.map(a=>`<option>${a.name}</option>`).join("");
+ const rq=(document.getElementById("reportSearch")?.value||"").toLowerCase();
+ document.getElementById("reports").innerHTML=reports.filter(r=>(r.id+r.area+r.description).toLowerCase().includes(rq)).map(r=>reportHTML(r,false)).join("")||'<p class="muted">No reports yet.</p>';
+ document.getElementById("staffReports").innerHTML=reports.length?reports.slice().sort((a,b)=>({High:0,Medium:1,Low:2}[a.priority]-({High:0,Medium:1,Low:2}[b.priority]))).map(r=>reportHTML(r,true)).join(""):'<p class="muted">No missed-collection reports.</p>';
+}
+function reportHTML(r,staff){
+ if(staff)return `<div class="row"><div><b>${r.id} • ${r.area}</b><span>${r.priority} priority • ${r.description}</span><span>${r.created}</span></div><select onchange="updateStatus('${r.id}',this.value)"><option ${r.status=="Pending"?"selected":""}>Pending</option><option ${r.status=="Processing"?"selected":""}>Processing</option><option ${r.status=="Collected"?"selected":""}>Collected</option></select></div>`;
+ return `<div class="row"><div><b>${r.id} — ${r.area}</b><span>${r.description}</span></div><span class="status ${r.status.toLowerCase()}">${r.status}</span></div>`;
+}
+function submitReport(){
+ const d=document.getElementById("rDesc").value.trim();if(!d){toast("Please enter a description.");return}
+ const r={id:"GC-"+(1001+reports.length),area:document.getElementById("rArea").value,priority:document.getElementById("rPriority").value,description:d,status:"Pending",created:new Date().toLocaleString()};
+ reports.push(r);save();document.getElementById("rDesc").value="";toast("Report submitted: "+r.id);showPage("status",document.querySelectorAll("nav button")[2]);
+}
+function updateStatus(id,status){const r=reports.find(x=>x.id===id);if(r){r.status=status;save();render();toast(id+" updated to "+status)}}
+function saveNotice(){notice=document.getElementById("noticeSelect").value;save();render();toast("Notice published.");}
+function toast(t){const x=document.getElementById("toast");x.textContent=t;x.style.display="block";setTimeout(()=>x.style.display="none",2200)}
+document.getElementById("areaSearch").oninput=render;
+document.getElementById("reportSearch").oninput=render;
+render();
+</script>
+</body>
+</html>
